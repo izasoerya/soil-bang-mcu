@@ -9,6 +9,8 @@
 
 NimBLEServer *pServer = nullptr;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
+SensorAS7265X sensor(&Wire);
+bool isDevMode = false;
 
 class ServerCallbacks : public NimBLEServerCallbacks
 {
@@ -38,7 +40,12 @@ class RxCallbacks : public NimBLECharacteristicCallbacks
 			bool flagSampling = ParserJSON::isCommandTakeSample(rxValue.c_str());
 			if (flagSampling)
 			{
-				Sensor payload = SensorAS7265X::generateDummy();
+				Sensor payload;
+				if (isDevMode)
+					payload = SensorAS7265X::generateDummy();
+				else
+					payload = sensor.read();
+
 				pTxCharacteristic->setValue(payload.toJSON().c_str());
 				if (pTxCharacteristic->notify())
 					Serial.println("Success sending data!");
@@ -74,6 +81,12 @@ void setup()
 	NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
 	pAdvertising->addServiceUUID(pService->getUUID());
 	pAdvertising->start();
+
+	if (!sensor.begin())
+	{
+		Serial.println("No I2C Device Found, Dev Mode Activated");
+		isDevMode = true;
+	}
 }
 
 void loop() {}
