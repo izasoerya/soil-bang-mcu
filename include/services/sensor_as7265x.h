@@ -89,9 +89,10 @@ public:
             .nm940 = _sensor.getCalibratedW(),
 
             // Temperature of the ICs
-            .as72651Temp = _sensor.getTemperature(1),
-            .as72652Temp = _sensor.getTemperature(2),
-            .as72653Temp = _sensor.getTemperature(3)};
+            .as72651Temp = (float)_sensor.getTemperature(AS72651_NIR),
+            .as72652Temp = (float)_sensor.getTemperature(AS72652_VISIBLE),
+            .as72653Temp = (float)_sensor.getTemperature(AS72653_UV)};
+        return sensorData;
     }
 };
 
