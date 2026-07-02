@@ -4,12 +4,14 @@
 #include "services/sensor_as7265x.h"
 #include <models/device.h>
 #include "../utils/utils.h"
+#include <services/sensor_battery.h>
 
 #define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
 const char *deviceName = "soil-bang-1";
+const uint8_t batteryPin = 1;
 
 NimBLEServer *pServer = nullptr;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
@@ -106,7 +108,7 @@ void loop()
 			Device d;
 			d.id = 1;
 			d.hostName = String(deviceName);
-			d.battery = 30.0; // TODO: actual battery reading
+			d.battery = SensorBattery::read(batteryPin);
 			d.freeHeap = ESP.getFreeHeap();
 			d.minFreeHeap = ESP.getMinFreeHeap();
 			d.largestBlock = ESP.getMaxAllocHeap();
