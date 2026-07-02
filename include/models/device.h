@@ -5,9 +5,9 @@ struct Device
     int id;
     String hostName;
     double battery;
-    int freeHeap;
-    int minFreeHeap;
-    int largestBlock;
+    uint32_t freeHeap;
+    uint32_t minFreeHeap;
+    uint32_t largestBlock;
     String lastResetReason;
 
     String toJSON() const
