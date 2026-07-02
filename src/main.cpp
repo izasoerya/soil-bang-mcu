@@ -2,6 +2,8 @@
 #include <NimBLEDevice.h>
 #include "services/parser_json.h"
 #include "services/sensor_as7265x.h"
+#include <models/device.h>
+#include "../utils/utils.h"
 
 #define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -86,6 +88,31 @@ void setup()
 	{
 		Serial.println("No I2C Device Found, Dev Mode Activated");
 		isDevMode = true;
+	}
+
+	static uint64_t prevTime = 0;
+	while (1)
+	{
+		if (millis() - prevTime > 10000)
+		{
+			Device d{
+				d.id = ESP.getEfuseMac() & 0xFFFFFFFF,								// unique chip ID (lower 32 bits)
+				d.hostName = "Soil-Bang-1",											// current hostname
+				d.battery = 30,														// TODO: actual battery reading
+				d.freeHeap = ESP.getFreeHeap(),										// current free heap (bytes)
+				d.minFreeHeap = ESP.getMinFreeHeap(),								// lowest free heap seen since boot
+				d.largestBlock = ESP.getMaxAllocHeap(),								// largest allocatable block
+				d.lastResetReason = esp_reset_reason_to_string(esp_reset_reason()), // see helper below
+			};
+
+			pTxCharacteristic->setValue(d.toJSON().c_str());
+			if (pTxCharacteristic->notify())
+				Serial.println("Success sending data!");
+			else
+				Serial.println("Failed sending data!");
+
+			prevTime = millis();
+		}
 	}
 }
 
