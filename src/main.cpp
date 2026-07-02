@@ -9,6 +9,8 @@
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
+const char *deviceName = "soil-bang-1";
+
 NimBLEServer *pServer = nullptr;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
 SensorAS7265X sensor(&Wire);
@@ -60,11 +62,13 @@ class RxCallbacks : public NimBLECharacteristicCallbacks
 	}
 };
 
+uint64_t prevTime = 0;
+
 void setup()
 {
 	Serial.begin(115200);
 
-	NimBLEDevice::init("SOIL-BANG");
+	NimBLEDevice::init(deviceName);
 	NimBLEDevice::setMTU(512);
 
 	pServer = NimBLEDevice::createServer();
@@ -90,30 +94,32 @@ void setup()
 		isDevMode = true;
 	}
 
-	static uint64_t prevTime = 0;
-	while (1)
-	{
-		if (millis() - prevTime > 10000)
-		{
-			Device d{
-				d.id = ESP.getEfuseMac() & 0xFFFFFFFF,								// unique chip ID (lower 32 bits)
-				d.hostName = "Soil-Bang-1",											// current hostname
-				d.battery = 30,														// TODO: actual battery reading
-				d.freeHeap = ESP.getFreeHeap(),										// current free heap (bytes)
-				d.minFreeHeap = ESP.getMinFreeHeap(),								// lowest free heap seen since boot
-				d.largestBlock = ESP.getMaxAllocHeap(),								// largest allocatable block
-				d.lastResetReason = esp_reset_reason_to_string(esp_reset_reason()), // see helper below
-			};
-
-			pTxCharacteristic->setValue(d.toJSON().c_str());
-			if (pTxCharacteristic->notify())
-				Serial.println("Success sending data!");
-			else
-				Serial.println("Failed sending data!");
-
-			prevTime = millis();
-		}
-	}
+	prevTime = millis();
 }
 
-void loop() {}
+void loop()
+{
+	if (millis() - prevTime > 10000)
+	{
+		if (pServer->getConnectedCount() > 0)
+		{
+			Device d;
+			d.id = 1;
+			d.hostName = String(deviceName);
+			d.battery = 30.0; // TODO: actual battery reading
+			d.freeHeap = ESP.getFreeHeap();
+			d.minFreeHeap = ESP.getMinFreeHeap();
+			d.largestBlock = ESP.getMaxAllocHeap();
+			d.lastResetReason = esp_reset_reason_to_string(esp_reset_reason());
+
+			String jsonStr = d.toJSON();
+			pTxCharacteristic->setValue(jsonStr.c_str());
+			if (pTxCharacteristic->notify())
+				Serial.printf("✓ Device status sent: %s\n", jsonStr.c_str());
+			else
+				Serial.println("✗ Failed sending device status");
+		}
+
+		prevTime = millis();
+	}
+}
