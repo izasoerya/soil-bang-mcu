@@ -1,3 +1,6 @@
+#ifndef SENSOR_H
+#define SENSOR_H
+
 #include <ArduinoJson.h>
 
 struct Sensor
@@ -73,3 +76,5 @@ struct Sensor
         return output;
     }
 };
+
+#endif
