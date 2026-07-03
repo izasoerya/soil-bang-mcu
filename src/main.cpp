@@ -1,22 +1,29 @@
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#include <ElegantOTA.h>
 #include "services/parser_json.h"
 #include "services/sensor_as7265x.h"
-#include <models/device.h>
-#include "../utils/utils.h"
 #include <services/sensor_battery.h>
+#include <models/device.h>
+#include "connection_wifi.h"
+#include "../utils/utils.h"
 
 #define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
 const char *deviceName = "soil-bang-1";
+const char *ssid = "Subhanallah";
+const char *password = "muhammadnabiyullah";
 const uint8_t batteryPin = 1;
 
+WiFiConnection wifi(ssid, password, deviceName);
 NimBLEServer *pServer = nullptr;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
 SensorAS7265X sensor(&Wire);
 bool isDevMode = false;
+bool isOTAMode = false;
+AsyncWebServer *server = nullptr;
 
 class ServerCallbacks : public NimBLEServerCallbacks
 {
@@ -43,9 +50,10 @@ class RxCallbacks : public NimBLECharacteristicCallbacks
 			Serial.print("Received from App: ");
 			Serial.println(rxValue.c_str());
 
-			bool flagSampling = ParserJSON::isCommandTakeSample(rxValue.c_str());
-			if (flagSampling)
+			CommandType type = ParserJSON::parseCommand(rxValue.c_str());
+			switch (type)
 			{
+			case CommandType::sampling:
 				Sensor payload;
 				if (isDevMode)
 					payload = SensorAS7265X::generateDummy();
@@ -57,14 +65,22 @@ class RxCallbacks : public NimBLECharacteristicCallbacks
 					Serial.println("Success sending data!");
 				else
 					Serial.println("Failed sending data!");
+				break;
 
-				flagSampling = !flagSampling;
+			case CommandType::upload:
+				// go into wifi ota mode
+				isOTAMode = true;
+				break;
+
+			default:
+				break;
 			}
 		}
 	}
 };
 
 uint64_t prevTime = 0;
+uint64_t prevWifiBegin = 0;
 
 void setup()
 {
@@ -97,6 +113,7 @@ void setup()
 	}
 
 	prevTime = millis();
+	prevWifiBegin = millis();
 }
 
 void loop()
@@ -123,5 +140,32 @@ void loop()
 		}
 
 		prevTime = millis();
+	}
+
+	if (isOTAMode)
+	{
+		if (WiFi.status() == WL_CONNECTED)
+		{
+			if (server == nullptr)
+			{
+				wifi.setupMDNS();
+				server = new AsyncWebServer(80);
+				ElegantOTA.begin(server);
+				ElegantOTA.setAutoReboot(true);
+				server->begin();
+			}
+			else
+			{
+				ElegantOTA.loop();
+			}
+		}
+		else
+		{
+			if (millis() - prevWifiBegin > 10000)
+			{
+				wifi.begin();
+				prevWifiBegin = millis();
+			}
+		}
 	}
 }
