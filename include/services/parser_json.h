@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <utils/enum.h>
 
 class ParserJSON
 {
@@ -10,17 +11,16 @@ public:
     ParserJSON() {}
     ~ParserJSON() {}
 
-    static const bool isCommandTakeSample(const char *incoming)
+    static const CommandType parseCommand(const char *incoming)
     {
         JsonDocument doc;
         deserializeJson(doc, incoming);
 
         if (doc["command"] == "sampling")
-        {
-            return true;
+            return CommandType::sampling;
+        else if (doc["command"] == "upload")
+            return CommandType::upload;
         }
-        return false;
-    }
 };
 
 #endif
