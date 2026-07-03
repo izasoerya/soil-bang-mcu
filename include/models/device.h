@@ -13,6 +13,7 @@ struct Device
     String toJSON() const
     {
         JsonDocument doc;
+        doc["type"] = "device";
         doc["id"] = id;
         doc["hostName"] = hostName;
         doc["battery"] = battery;
