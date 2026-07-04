@@ -1,3 +1,6 @@
+#ifndef DEVICE_H
+#define DEVICE_H
+
 #include <ArduinoJson.h>
 
 struct Device
@@ -40,3 +43,5 @@ struct Device
         return d;
     }
 };
+
+#endif
