@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <utils/enum.h>
+#include <stdexcept>
 
 class ParserJSON
 {
@@ -20,7 +21,8 @@ public:
             return CommandType::sampling;
         else if (doc["command"] == "upload")
             return CommandType::upload;
-        }
+        return CommandType::unknown;
+    }
 };
 
 #endif
