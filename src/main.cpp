@@ -7,13 +7,15 @@
 #include <models/device.h>
 #include "connection_wifi.h"
 #include "../utils/utils.h"
+#include "task.h"
+#include <services/loop_job.h>
 
 #define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 
 const char *deviceName = "soil-bang-1";
-const char *ssid = "Subhanallah";
+const char *ssid = "NodeSensorWiFi1";
 const char *password = "muhammadnabiyullah";
 const uint8_t batteryPin = 1;
 
@@ -24,6 +26,8 @@ SensorAS7265X sensor(&Wire);
 bool isDevMode = false;
 bool isOTAMode = false;
 AsyncWebServer *server = nullptr;
+
+TaskRunner runner;
 
 class ServerCallbacks : public NimBLEServerCallbacks
 {
@@ -68,7 +72,6 @@ class RxCallbacks : public NimBLECharacteristicCallbacks
 				break;
 
 			case CommandType::upload:
-				// go into wifi ota mode
 				isOTAMode = true;
 				break;
 
@@ -79,8 +82,7 @@ class RxCallbacks : public NimBLECharacteristicCallbacks
 	}
 };
 
-uint64_t prevTime = 0;
-uint64_t prevWifiBegin = 0;
+static DeviceOTA *configOTA = nullptr;
 
 void setup()
 {
@@ -112,60 +114,20 @@ void setup()
 		isDevMode = true;
 	}
 
-	prevTime = millis();
-	prevWifiBegin = millis();
+	static DeviceDataBroadcast deviceData = DeviceDataBroadcast(deviceName, pTxCharacteristic, batteryPin, 10000);
+	runner.addTask(&deviceData);
 }
 
 void loop()
 {
-	if (millis() - prevTime > 10000)
+	if (pServer->getConnectedCount() > 0)
 	{
-		if (pServer->getConnectedCount() > 0)
+		if (isOTAMode && configOTA == nullptr)
 		{
-			Device d;
-			d.id = 1;
-			d.hostName = String(deviceName);
-			d.battery = SensorBattery::read(batteryPin);
-			d.freeHeap = ESP.getFreeHeap();
-			d.minFreeHeap = ESP.getMinFreeHeap();
-			d.largestBlock = ESP.getMaxAllocHeap();
-			d.lastResetReason = esp_reset_reason_to_string(esp_reset_reason());
-
-			String jsonStr = d.toJSON();
-			pTxCharacteristic->setValue(jsonStr.c_str());
-			if (pTxCharacteristic->notify())
-				Serial.printf("✓ Device status sent: %s\n", jsonStr.c_str());
-			else
-				Serial.println("✗ Failed sending device status");
+			// OTA is enabled at runtime, so need to use heap here
+			configOTA = new DeviceOTA(ssid, password, deviceName, 0);
+			runner.addTask(configOTA);
 		}
-
-		prevTime = millis();
-	}
-
-	if (isOTAMode)
-	{
-		if (WiFi.status() == WL_CONNECTED)
-		{
-			if (server == nullptr)
-			{
-				wifi.setupMDNS();
-				server = new AsyncWebServer(80);
-				ElegantOTA.begin(server);
-				ElegantOTA.setAutoReboot(true);
-				server->begin();
-			}
-			else
-			{
-				ElegantOTA.loop();
-			}
-		}
-		else
-		{
-			if (millis() - prevWifiBegin > 10000)
-			{
-				wifi.begin();
-				prevWifiBegin = millis();
-			}
-		}
+		runner.loopTask();
 	}
 }
