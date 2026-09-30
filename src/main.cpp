@@ -15,9 +15,10 @@
 #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
 #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
 const char *deviceName = "soil-bang-1";
-const char *ssid = "NodeSensorWiFi";
+const char *ssid = "Subhanallah";
 const char *password = "muhammadnabiyullah";
 const uint8_t batteryPin = 1;
+uint32_t prevTimeStamp = 0;
 
 NimBLEServer *pServer = nullptr;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
@@ -44,7 +45,10 @@ void readSensorCallback()
 
 	pTxCharacteristic->setValue(payload.toJSON().c_str());
 	if (pTxCharacteristic->notify())
+	{
 		Serial.println("Success sending data!");
+		prevTimeStamp = millis();
+	}
 	else
 		Serial.println("Failed sending data!");
 }
@@ -94,5 +98,12 @@ void loop()
 	if (pServer->getConnectedCount() > 0)
 	{
 		runner.loopTask();
+	}
+
+	static uint32_t prevLogTemp = millis();
+	if (millis() - prevLogTemp > 5000)
+	{
+		prevLogTemp = millis();
+		Serial.printf("Internal CPU Temp: %.1f\n", temperatureRead());
 	}
 }
