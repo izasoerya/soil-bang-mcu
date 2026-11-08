@@ -18,7 +18,6 @@ const char *deviceName = "soil-bang-1";
 const char *ssid = "Subhanallah";
 const char *password = "muhammadnabiyullah";
 const uint8_t batteryPin = 1;
-uint32_t prevTimeStamp = 0;
 
 NimBLEServer *pServer = nullptr;
 NimBLECharacteristic *pTxCharacteristic = nullptr;
@@ -45,14 +44,16 @@ void readSensorCallback()
 
 	for (uint8_t i = 0; i < 3; i++)
 	{
-		pTxCharacteristic->setValue(results[i].toJSON().c_str());
-		if (pTxCharacteristic->notify())
+		String payload = results[i].toJSON();
+		if (pTxCharacteristic->notify(
+				reinterpret_cast<const uint8_t *>(payload.c_str()),
+				payload.length()))
 		{
 			Serial.println("Success sending data!");
-			prevTimeStamp = millis();
 		}
 		else
 			Serial.println("Failed sending data!");
+		delay(1000);
 	}
 }
 
