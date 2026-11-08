@@ -70,8 +70,7 @@ public:
         return sensorData;
     }
 
-    Sensor *
-    read()
+    Sensor *read()
     {
         static Sensor sensorChannelAgregateResult[3];
         sensorChannelAgregateResult[0] = _read(AS7265x_LED_WHITE);
@@ -84,6 +83,7 @@ public:
     {
         static const Sensor dummy[3] = {
             {// White
+             .ledType = AS7265x_LED_WHITE,
              .nm410 = 12.5,
              .nm435 = 14.2,
              .nm460 = 16.8,
@@ -106,6 +106,7 @@ public:
              .as72652Temp = 29.1,
              .as72653Temp = 28.8},
             {// UV
+             .ledType = AS7265x_LED_UV,
              .nm410 = 48.3,
              .nm435 = 41.7,
              .nm460 = 33.2,
@@ -128,6 +129,7 @@ public:
              .as72652Temp = 29.6,
              .as72653Temp = 29.3},
             {// IR
+             .ledType = AS7265x_LED_IR,
              .nm410 = 3.2,
              .nm435 = 3.6,
              .nm460 = 4.1,
