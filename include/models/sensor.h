@@ -5,6 +5,8 @@
 
 struct Sensor
 {
+    uint8_t ledType; // LED color
+
     float nm410;
     float nm435;
     float nm460;
@@ -39,6 +41,7 @@ struct Sensor
 
         // 1. Discriminator Key
         doc["type"] = "sensor";
+        doc["led_type"] = ledType;
 
         // 2. AS72653 (UV to VIS)
         doc["nm410"] = nm410;

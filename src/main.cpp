@@ -37,20 +37,23 @@ void readSensorCallback()
 		else
 			*sensorMode = ReadSensorMode::devMode;
 	}
-	Sensor payload;
+	Sensor *results = nullptr;
 	if (*sensorMode == ReadSensorMode::sensorMode)
-		payload = sensor.read();
+		results = sensor.read(); // one measurement cycle
 	else
-		payload = sensor.generateDummy();
+		results = const_cast<Sensor *>(SensorAS7265X::generateDummy());
 
-	pTxCharacteristic->setValue(payload.toJSON().c_str());
-	if (pTxCharacteristic->notify())
+	for (uint8_t i = 0; i < 3; i++)
 	{
-		Serial.println("Success sending data!");
-		prevTimeStamp = millis();
+		pTxCharacteristic->setValue(results[i].toJSON().c_str());
+		if (pTxCharacteristic->notify())
+		{
+			Serial.println("Success sending data!");
+			prevTimeStamp = millis();
+		}
+		else
+			Serial.println("Failed sending data!");
 	}
-	else
-		Serial.println("Failed sending data!");
 }
 
 void activateOTACallback()
