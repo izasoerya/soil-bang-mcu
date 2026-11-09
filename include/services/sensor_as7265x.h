@@ -16,11 +16,13 @@ public:
 
     bool begin()
     {
-        _wire->begin(6, 7);
+        _wire->begin(4, 3);
         if (!_sensor.begin())
         {
+            Serial.println("Sensor init failed!");
             return 0;
         }
+        Serial.println("Sensor init success!");
         _sensor.disableIndicator(); // save power, no status blink
         _sensor.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_25MA, AS7265x_LED_WHITE);
         _sensor.setBulbCurrent(AS7265X_LED_CURRENT_LIMIT_25MA, AS7265x_LED_IR);
